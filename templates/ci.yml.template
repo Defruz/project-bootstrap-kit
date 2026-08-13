@@ -1,0 +1,85 @@
+# Plantilla de CI en capas — ver patrón 4 de METHODOLOGY.md
+#
+# Orden: barato/rápido primero. Cada job siguiente asume que el anterior
+# pasó. La suite lenta/frágil va en su propio job, no bloqueante hasta que
+# demuestre ser fiable.
+#
+# Sustituye cada <PLACEHOLDER> por el comando real de tu stack.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: <SETUP_RUNTIME_CMD>          # p.ej. instalar el runtime/versión fija
+      - name: Lint
+        run: <LINT_CMD>                    # p.ej. ruff check . / eslint . / golangci-lint run
+      - name: Format check
+        run: <FORMAT_CHECK_CMD>            # p.ej. ruff format --check . / prettier --check .
+
+  smoke-test:
+    name: Smoke test (arranque/imports básicos)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: <SETUP_RUNTIME_CMD>
+      - name: Instalar dependencias
+        run: <INSTALL_DEPS_CMD>
+      - name: Smoke test
+        run: <SMOKE_TEST_CMD>              # importar/arrancar lo esencial, sin ejecutar lógica
+
+  test:
+    name: Tests
+    needs: [lint, smoke-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Guardia anti-suite-vacía — ver patrón 4. Sin esto, borrar el
+      # directorio de tests deja el CI en verde sin ejecutar nada.
+      - name: Verificar que existe suite de tests
+        run: |
+          if ! <TEST_FILES_EXIST_CHECK>; then
+            echo "::error title=Sin tests::No se encontró ningún fichero de test."
+            exit 1
+          fi
+
+      - name: Setup
+        run: <SETUP_RUNTIME_CMD>
+      - name: Instalar dependencias
+        run: <INSTALL_DEPS_CMD>
+      - name: Ejecutar tests
+        run: <TEST_CMD>
+
+  # Job aparte para la suite lenta o frágil (navegador, contenedor, red real).
+  # No la metas en `test` — si tarda mucho más que la suite unitaria, o si
+  # tiene más falsos positivos, un fallo suyo no debe enterrar el resultado
+  # de la suite rápida en el mismo log. Promociónalo a bloqueante (añádelo a
+  # `needs` de algo, o a la protección de rama) solo cuando lleve un tiempo
+  # sin falsos positivos.
+  slow-suite:
+    name: Suite lenta (navegador/integración)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: <SETUP_RUNTIME_CMD>
+      - name: Instalar dependencias + herramientas pesadas
+        run: <INSTALL_SLOW_DEPS_CMD>        # p.ej. playwright install --with-deps chromium
+      - name: Ejecutar suite lenta
+        run: <SLOW_TEST_CMD>
