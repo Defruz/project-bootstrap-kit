@@ -1,4 +1,4 @@
-# Metodología de arranque — 11 patrones
+# Metodología de arranque — 12 patrones + extras
 
 > Cada patrón separa la **regla** (se lleva siempre) del **ejemplo** (ilustra
 > la regla con un caso genérico, no de un proyecto ni cliente concreto).
@@ -213,6 +213,55 @@ el mismo cambio que activa la regla.
 
 ---
 
+## 12. Gitignore por forma de nombre de credencial, no solo por `.env`
+
+**Regla:** la mayoría de plantillas de `.gitignore` cubren `.env` y ya está —
+pero la fuga típica en proyectos cloud no es `.env`, es una clave de service
+account o un fichero de credenciales con un nombre que no sigue esa
+convención. El `.gitignore` lleva patrones explícitos por **forma** de
+nombre de credencial (no solo por extensión), y `.env.example` se fuerza a
+quedar trackeado con una negación explícita, para que el contrato de
+configuración documentado no desaparezca por accidente.
+
+**Ejemplo genérico (evidencia real, patrones sin nombres de proyecto):**
+```gitignore
+# Env
+.env
+!.env.example
+
+# Credenciales por forma de nombre — no solo por extensión
+*.json.key
+*-service-account*.json
+service-account*.json
+credentials*.json
+application_default_credentials.json
+```
+
+**No aplica si:** el proyecto no usa credenciales basadas en fichero (todo
+vía variables de entorno inyectadas por la plataforma, sin fichero de por
+medio) — ahí basta con ignorar `.env`.
+
+---
+
+## Extras de estructura (no salen de hipotecas — son estándar, añadidos por completitud)
+
+> A diferencia de los 12 patrones anteriores, esto no viene de observar un
+> repo real con evidencia de que costó algo no tenerlo — es scaffolding
+> convencional que cuesta poco y vale la pena tener desde el primer commit.
+
+- **Plantilla de PR** (`.github/PULL_REQUEST_TEMPLATE.md`) — refuerza el
+  patrón 2: si la plantilla trae un checkbox de "¿este PR cambia el estado
+  del proyecto? ¿el doc de arranque está actualizado?", la documentación no
+  llega como PR de seguimiento.
+- **`.editorconfig`** — evita diffs de espacios/finales de línea entre
+  editores distintos, sin depender de que cada contribuidor configure su
+  editor a mano.
+- **Actualización automática de dependencias** (Dependabot/Renovate) — para
+  que las dependencias no se queden congeladas hasta que algo rompe por una
+  CVE vieja.
+
+---
+
 ## Checklist portable
 
 - [ ] Doc de arranque con comandos + sección de "por qué" para correcciones
@@ -235,6 +284,10 @@ el mismo cambio que activa la regla.
       (patrón 10).
 - [ ] Gate de complejidad ciclomática en el lint (CI + pre-commit), con
       técnica de ratchet si hay deuda existente (patrón 11).
+- [ ] `.gitignore` con patrones por forma de nombre de credencial, no solo
+      `.env` (patrón 12).
+- [ ] Extras de estructura: plantilla de PR, `.editorconfig`, actualización
+      automática de dependencias.
 
 ## Cuándo aplica todo esto (y cuándo no)
 

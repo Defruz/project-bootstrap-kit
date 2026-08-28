@@ -13,8 +13,8 @@ integración real aparece aquí.
 
 1. Usa este repo como **template** (`gh repo create mi-proyecto --template Defruz/project-bootstrap-kit`
    o el botón "Use this template" en GitHub) o copia manualmente lo que necesites de `templates/`.
-2. Lee `METHODOLOGY.md` una vez — son 10 patrones + un checklist + un criterio
-   de "cuándo aplica esto y cuándo no".
+2. Lee `METHODOLOGY.md` una vez — son 12 patrones + extras de estructura +
+   un checklist + un criterio de "cuándo aplica esto y cuándo no".
 3. Rellena `templates/CLAUDE.md.template` con los comandos y decisiones reales
    del proyecto nuevo. Empieza vacía la sección "Lecciones" — se rellena sola
    con el tiempo, según el patrón 1.
@@ -29,10 +29,19 @@ integración real aparece aquí.
 
 | Archivo | Qué es |
 |---|---|
-| `METHODOLOGY.md` | Los 10 patrones, con ejemplos abstraídos y el criterio de cuándo aplican |
+| `METHODOLOGY.md` | Los 12 patrones + extras, con ejemplos abstraídos y el criterio de cuándo aplican |
 | `templates/CLAUDE.md.template` | Esqueleto del doc de arranque, con la sección "Lecciones" explicada |
 | `templates/ci.yml.template` | CI en capas (barato→caro, guardia anti-suite-vacía, suite lenta aislada) |
 | `templates/pre-commit-config.yaml.template` | Espejo local del lint de CI |
 | `templates/issue_template.md` | Plantilla de issue/epic con TDD Requirements + Acceptance Criteria |
 | `templates/decision_log_template.md` | Formato para fijar un criterio de una frase ante una decisión recurrente |
 | `templates/config_drift_check.py.template` | Esqueleto de guardia contra nombres de config que divergen en silencio |
+| `templates/gitignore.template` | `.gitignore` con patrones por forma de nombre de credencial, no solo `.env` |
+| `templates/PULL_REQUEST_TEMPLATE.md` | Plantilla de PR con checkbox de "doc actualizado" (extra) |
+| `templates/editorconfig.template` | `.editorconfig` base multi-stack (extra) |
+| `templates/dependabot.yml.template` | Actualización automática de dependencias (extra) |
+
+> Los patrones 1-12 tienen evidencia real (algo que costó tiempo/bugs no
+> tenerlo). Los marcados "(extra)" son scaffolting convencional añadido por
+> completitud, no extraído de un incidente real — ver la sección "Extras de
+> estructura" en `METHODOLOGY.md`.

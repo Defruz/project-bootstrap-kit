@@ -1,0 +1,21 @@
+# Plantilla de Dependabot — colocar en .github/dependabot.yml
+# No sale de la extraccion de hipotecas (ver METHODOLOGY.md, seccion "Extras")
+# - para que las dependencias no se queden congeladas hasta que algo rompe
+# por una CVE vieja.
+#
+# Ajustar "package-ecosystem" y "directory" al stack real. Ejemplos comunes:
+# pip, npm, docker, github-actions, gomod, cargo, maven, gradle.
+
+version: 2
+updates:
+  - package-ecosystem: "<pip|npm|docker|github-actions|...>"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Mantener las propias GitHub Actions actualizadas, casi siempre util:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

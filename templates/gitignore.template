@@ -1,0 +1,46 @@
+# Plantilla de .gitignore — ver patron 12 de METHODOLOGY.md
+#
+# Renombrar a ".gitignore" en el repo nuevo. Adaptar las secciones de stack
+# (Python/Node/etc.) a lo que uses; la seccion de credenciales aplica siempre
+# que el proyecto use algun fichero de credenciales (no solo variables de
+# entorno inyectadas por la plataforma).
+
+# --- Env ---
+.env
+!.env.example
+
+# --- Credenciales por FORMA de nombre, no solo por extension ---
+# La fuga tipica en proyectos cloud no es .env, es una clave de servicio con
+# un nombre que no sigue esa convencion. Ajustar los patrones al proveedor
+# real (estos cubren los nombres mas comunes en GCP/AWS/Azure):
+*.json.key
+*-service-account*.json
+service-account*.json
+credentials*.json
+application_default_credentials.json
+*.pem
+*.pfx
+id_rsa
+id_rsa.pub
+
+# --- Cache / build ---
+# <adaptar por stack: __pycache__/, node_modules/, dist/, build/, .venv/...>
+
+# --- Logs / runtime ---
+*.log
+.logs/
+.pids/
+
+# --- Test outputs ---
+test-results/
+htmlcov/
+.coverage
+
+# --- IaC state (si aplica) ---
+# terraform/.terraform/
+# terraform/terraform.tfstate*
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
