@@ -1,4 +1,4 @@
-# Metodología de arranque — 10 patrones
+# Metodología de arranque — 11 patrones
 
 > Cada patrón separa la **regla** (se lleva siempre) del **ejemplo** (ilustra
 > la regla con un caso genérico, no de un proyecto ni cliente concreto).
@@ -181,6 +181,38 @@ de la llamada real. Si el cliente se crea por request, cada request paga los
 
 ---
 
+## 11. Limita la complejidad ciclomática — y déjala aplicar al propio LLM
+
+**Regla:** el número de caminos independientes por función (ramas `if`/`for`/
+`while`/`except`/`and`/`or`) se mide con una herramienta objetiva y se limita
+con un umbral (10 es el valor de referencia habitual; hasta 15-20 si el
+proyecto ya tiene deuda). No es solo higiene de mantenimiento: decirle
+explícitamente a un LLM que su código tiene que pasar este lint hace que
+genere funciones más simples desde el principio, en vez de depender de que
+"sepa" no anidar demasiado.
+
+**Cómo introducirlo sin romper CI de golpe (técnica de ratchet):** si el
+proyecto ya tiene funciones complejas, activar el umbral estricto de golpe
+rompe CI para código que nadie va a tocar hoy. En su lugar: se excluyen
+explícitamente (`noqa`/comentario de supresión) las funciones que ya superan
+el umbral, y se deja el umbral estricto activo para **todo lo nuevo**. Así el
+gate bloquea complejidad nueva sin exigir refactorizar la deuda existente en
+el mismo cambio que activa la regla.
+
+**Ejemplo genérico por stack:**
+- Python: `ruff` ya incluye el checker de McCabe — `select = [..., "C90"]` +
+  `[tool.ruff.lint.mccabe] max-complexity = 10` en `pyproject.toml`. Cero
+  dependencias nuevas si ya usas ruff.
+- JS/TS: regla `complexity` de ESLint, o `eslint-plugin-sonarjs`.
+- Go: `gocyclo` vía `golangci-lint`.
+- Agnóstico de lenguaje: `lizard` como CLI standalone.
+
+**Dónde encaja:** mismo sitio que el resto del lint — el job `lint` de CI
+(patrón 4) y el pre-commit (patrón 5). No es una guía de comportamiento
+(skill/prosa) — es un gate mecánico, igual que el resto del lint.
+
+---
+
 ## Checklist portable
 
 - [ ] Doc de arranque con comandos + sección de "por qué" para correcciones
@@ -201,6 +233,8 @@ de la llamada real. Si el cliente se crea por request, cada request paga los
       contrato + procedencia visible (patrón 9).
 - [ ] Cachear cualquier cliente/recurso con arranque caro, si lo hay
       (patrón 10).
+- [ ] Gate de complejidad ciclomática en el lint (CI + pre-commit), con
+      técnica de ratchet si hay deuda existente (patrón 11).
 
 ## Cuándo aplica todo esto (y cuándo no)
 
