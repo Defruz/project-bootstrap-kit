@@ -1,0 +1,17 @@
+#!/bin/sh
+# Hook global (core.hooksPath) — ver templates/git-hooks/README.md.
+# $3=1 solo en checkout de rama (no de ficheros sueltos). Ver patron 13 de
+# METHODOLOGY.md.
+dir="$(dirname "$0")"
+
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+for local_hook in "$git_dir/hooks/post-checkout" ".husky/post-checkout"; do
+    if [ -f "$local_hook" ] && [ -x "$local_hook" ]; then
+        "$local_hook" "$@" || true
+    fi
+done
+
+[ "$3" = "1" ] || exit 0
+
+. "$dir/limpiar-ramas-comun.sh"
+limpiar_ramas_comun

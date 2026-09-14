@@ -1,0 +1,58 @@
+#!/bin/sh
+# Ver patron 13 de METHODOLOGY.md.
+#
+# A diferencia del resto de plantillas de este kit, esto NO se copia dentro
+# de un repo de proyecto: es config de git a nivel de MAQUINA (una sola vez
+# por equipo, no por proyecto), porque el problema que resuelve — worktrees y
+# ramas huerfanas tras mergear PRs de agentes de IA en paralelo — ocurre en
+# cualquier repo donde trabajes asi, no en uno concreto. Ver
+# templates/git-hooks/README.md para la instalacion.
+#
+# Solo borra con `git worktree remove` (sin --force) y `git branch -d` (sin
+# -D): ambos se niegan si hay cambios sin commitear o si la rama no esta
+# mergeada, asi que la seguridad la da git, no logica manual de "esta
+# mergeada".
+
+limpiar_ramas_comun() {
+    current_branch=$(git symbolic-ref --short HEAD 2>/dev/null) || return 0
+    case "$current_branch" in
+        main|master) ;;
+        *) return 0 ;;
+    esac
+
+    git fetch --prune --quiet 2>/dev/null
+
+    # Worktrees cuya rama tiene upstream "gone" (PR ya mergeado y borrado en remoto)
+    git worktree list --porcelain | awk '/^worktree /{wt=$2} /^branch /{print wt" "$2}' |
+    while IFS=' ' read -r wt_path branch_ref; do
+        branch=${branch_ref#refs/heads/}
+        [ "$branch" = "$current_branch" ] && continue
+        [ -z "$branch" ] && continue
+        track=$(git for-each-ref --format='%(upstream:track)' "refs/heads/$branch" 2>/dev/null)
+        case "$track" in
+            *"[gone]"*)
+                if git -C "$wt_path" status --porcelain --ignore-submodules 2>/dev/null | grep -q .; then
+                    continue
+                fi
+                if git worktree remove "$wt_path" 2>/dev/null; then
+                    if git branch -d "$branch" 2>/dev/null; then
+                        echo "limpieza-ramas: eliminado worktree y rama '$branch'"
+                    fi
+                fi
+                ;;
+        esac
+    done
+
+    # Ramas locales sueltas (sin worktree) con upstream "gone"
+    git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads/ 2>/dev/null |
+    while IFS=' ' read -r branch track; do
+        [ "$branch" = "$current_branch" ] && continue
+        case "$track" in
+            *"[gone]"*)
+                if git branch -d "$branch" 2>/dev/null; then
+                    echo "limpieza-ramas: eliminada rama '$branch'"
+                fi
+                ;;
+        esac
+    done
+}

@@ -1,0 +1,16 @@
+#!/bin/sh
+# Hook global (core.hooksPath) — ver templates/git-hooks/README.md.
+# Delega primero a un hook local del repo si existe (p.ej. husky), para no
+# romper otras herramientas, y luego limpia ramas/worktrees ya fusionados
+# (patron 13 de METHODOLOGY.md).
+dir="$(dirname "$0")"
+
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+for local_hook in "$git_dir/hooks/post-merge" ".husky/post-merge"; do
+    if [ -f "$local_hook" ] && [ -x "$local_hook" ]; then
+        "$local_hook" "$@" || true
+    fi
+done
+
+. "$dir/limpiar-ramas-comun.sh"
+limpiar_ramas_comun

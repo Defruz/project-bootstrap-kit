@@ -24,6 +24,9 @@ integración real aparece aquí.
    proyecto crezca".
 6. Descarta cualquier patrón marcado como "no aplica si..." que no encaje —
    no hay que forzarlos todos.
+7. Si trabajas con varios agentes de IA o sesiones en paralelo sobre
+   worktrees, instala una vez por máquina el hook de `templates/git-hooks/`
+   (no se copia dentro del repo del proyecto — ver su README).
 
 ## Contenido
 
@@ -40,8 +43,9 @@ integración real aparece aquí.
 | `templates/PULL_REQUEST_TEMPLATE.md` | Plantilla de PR con checkbox de "doc actualizado" (extra) |
 | `templates/editorconfig.template` | `.editorconfig` base multi-stack (extra) |
 | `templates/dependabot.yml.template` | Actualización automática de dependencias (extra) |
+| `templates/git-hooks/` | Hook global (una vez por máquina, no por repo) que limpia worktrees/ramas ya fusionados — patrón 13 |
 
-> Los patrones 1-12 tienen evidencia real (algo que costó tiempo/bugs no
+> Los patrones 1-15 tienen evidencia real (algo que costó tiempo/bugs no
 > tenerlo). Los marcados "(extra)" son scaffolting convencional añadido por
 > completitud, no extraído de un incidente real — ver la sección "Extras de
 > estructura" en `METHODOLOGY.md`.

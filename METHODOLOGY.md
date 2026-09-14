@@ -243,6 +243,113 @@ medio) — ahí basta con ignorar `.env`.
 
 ---
 
+## 13. Higiene de git cuando varios agentes de IA trabajan en paralelo sobre worktrees
+
+**Regla:** un flujo donde varios agentes de IA (o varias sesiones) trabajan en
+paralelo, cada uno en su propio worktree y rama de git, introduce tres riesgos
+que no existen con un único contribuidor secuencial:
+
+1. **Limpieza automática de lo ya fusionado.** Cada worktree o rama que ya se
+   mergeó (PR aceptado, rama remota borrada) se queda huérfano en local salvo
+   que algo lo borre. Un hook de git (`post-merge`/`post-checkout`, activado
+   solo al hacer pull de la rama principal) borra worktree y rama con
+   `git worktree remove` (sin `--force`) y `git branch -d` (sin `-D`) — la
+   propia orden se niega si hay cambios sin commitear o si la rama no está
+   realmente mergeada, así que la seguridad la da git, no lógica propia de
+   "¿está mergeada?".
+2. **Sincronizar con el remoto antes de tocar nada, no solo antes de
+   comitear.** Antes de editar o borrar contenido, comprobar si la copia
+   local de la rama principal está por detrás del remoto
+   (`git fetch` + `git rev-list --count HEAD..origin/main`) y sincronizar
+   primero. La señal de alerta suele ser indirecta (un puerto de servidor ya
+   ocupado, un conflicto al pushear) y para entonces ya se editó o borró
+   contra una base desactualizada.
+3. **No fiarse de la ruta de trabajo que reporta un agente.** Un subagente al
+   que se le pide trabajar dentro de un worktree concreto puede resolver
+   rutas relativas contra su propia idea de la raíz del repo en vez de contra
+   el directorio que se le pasó, y escribir en el checkout equivocado sin dar
+   ningún error — el fallo es silencioso. Pasarle siempre la ruta absoluta de
+   salida, y verificar dónde escribió de verdad antes de continuar.
+
+**Ejemplo genérico:** en un repo donde cada tarea de un agente de IA crea un
+worktree con su propia rama, tras semanas de trabajo se acumulan decenas de
+ramas locales con upstream ya borrado en remoto y varios worktrees enteros
+apuntando a ramas ya fusionadas hace tiempo — nadie los había borrado a mano.
+Al mismo tiempo, otro agente edita un módulo contra una copia local de la
+rama principal varios commits por detrás, sin saber que de por medio se
+fusionó una funcionalidad entera relacionada con ese módulo: si publica sin
+sincronizar antes, pisa ese trabajo sin darse cuenta hasta el conflicto — o
+sin conflicto siquiera, si el cambio no toca las mismas líneas.
+
+**Por qué funciona:** los tres hábitos son baratos comparados con el coste de
+perder trabajo ajeno o acumular basura que nadie limpia; y delegar la
+comprobación de seguridad en los propios comandos de git (en vez de
+reimplementar "¿está mergeada?" o "¿está sincronizada?") evita falsos
+positivos.
+
+**No aplica si:** un único contribuidor trabaja de forma secuencial, sin
+worktrees ni ramas paralelas — ahí la copia local siempre refleja el estado
+real y no hay nada que limpiar automáticamente.
+
+---
+
+## 14. La infraestructura declarativa gana siempre al dashboard — secretos en el gestor dedicado
+
+**Regla:** si el despliegue de un servicio se define de forma declarativa en
+un fichero versionado (Terraform, definiciones de Workers/Functions,
+CloudFormation, Serverless Framework...), cualquier configuración puesta a
+mano en el dashboard del proveedor que no esté reflejada en ese fichero se
+pierde en el siguiente despliegue automático, sin aviso. Los valores
+persistentes — sobre todo secretos — van en el gestor de secretos dedicado
+del proveedor; el fichero declarativo guarda solo la referencia (nombre o
+ID), nunca el valor.
+
+**Ejemplo genérico:** alguien añade un token de autenticación a mano desde el
+panel del proveedor para probar algo rápido. Funciona hasta el primer deploy
+posterior: el fichero de infraestructura versionado sobrescribe la
+configuración del servicio y el token desaparece sin que el deploy falle ni
+avise. El error solo aparece después, como un fallo de autenticación que no
+menciona la causa real. La corrección es mover el token al gestor de
+secretos del proveedor y referenciarlo por nombre desde el fichero
+declarativo, nunca pegar el valor directamente en él ni en el dashboard.
+
+**Por qué funciona:** hace explícito en el propio repo cuál es la fuente de
+verdad de la configuración, en vez de dejar que dashboard y código
+declarativo compitan en silencio.
+
+**No aplica si:** el despliegue se gestiona enteramente desde el dashboard,
+sin fichero declarativo versionado — ahí no hay overwrite que temer (aunque
+se pierde reproducibilidad, que es un problema aparte).
+
+---
+
+## 15. Lista blanca explícita para lo que se publica sin autenticación
+
+**Regla:** cuando una carpeta o repo se publica tal cual a un sitio o CDN sin
+autenticación delante, el fichero que decide qué se sube es una **lista
+blanca** explícita de lo que debe ser público, no una lista negra de lo que
+se excluye. Una lista negra falla en modo abierto: cualquier fichero nuevo
+que alguien olvide añadir a las exclusiones se publica por defecto.
+
+**Ejemplo genérico:** un sitio estático se despliega publicando el repo
+entero salvo lo listado en un fichero de exclusiones. Meses después, alguien
+añade una carpeta de notas internas o un fichero con una clave de prueba, y
+se despliega igual — nadie recordó añadirlo a las exclusiones, y no hay
+ningún error que lo avise, solo una fuga silenciosa. Invertir el fichero a
+lista blanca (solo se publican estos directorios o ficheros, todo lo demás
+queda fuera) hace que cualquier fichero nuevo quede fuera por defecto hasta
+que alguien decida explícitamente hacerlo público.
+
+**Por qué funciona:** falla cerrado en vez de abierto — un olvido produce
+"esto no se ve" (se detecta rápido, porque falta algo esperado) en vez de
+"esto se ve y no debería" (se detecta tarde, si es que se detecta).
+
+**No aplica si:** el sitio está detrás de autenticación, o el propio
+proveedor ya publica solo una carpeta de build explícita (p.ej. `dist/`) sin
+posibilidad de incluir el resto del repo.
+
+---
+
 ## Extras de estructura (no salen de hipotecas — son estándar, añadidos por completitud)
 
 > A diferencia de los 12 patrones anteriores, esto no viene de observar un
@@ -286,6 +393,13 @@ medio) — ahí basta con ignorar `.env`.
       técnica de ratchet si hay deuda existente (patrón 11).
 - [ ] `.gitignore` con patrones por forma de nombre de credencial, no solo
       `.env` (patrón 12).
+- [ ] Hook de limpieza de worktrees/ramas huérfanas + hábito de sincronizar
+      antes de tocar archivos, si hay varios agentes de IA o sesiones en
+      paralelo sobre el mismo repo (patrón 13).
+- [ ] Secretos de despliegue en el gestor dedicado del proveedor, nunca como
+      override manual sobre infraestructura declarativa (patrón 14).
+- [ ] Lista blanca explícita de lo publicado, si el proyecto despliega a un
+      sitio sin autenticación (patrón 15).
 - [ ] Extras de estructura: plantilla de PR, `.editorconfig`, actualización
       automática de dependencias.
 
